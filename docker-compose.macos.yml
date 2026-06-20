@@ -1,0 +1,21 @@
+services:
+  pico:
+    build:
+      context: .
+      dockerfile: Dockerfile.macos
+    ports:
+      - "8000:8000"
+    volumes:
+      # Reuse your existing model file — no re-download needed
+      - "${MODELS_DIR}:/models"
+    environment:
+      MODEL_PATH: /models/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+      # Set MODEL_URL only if the model is not already on disk.
+      # MODEL_URL: https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+      GPU_LAYERS: "0"          # CPU-only; Metal is not available inside Docker on macOS
+      LLAMA_PARALLEL_SLOTS: "2" # reduce from 4 to limit concurrent CPU load
+    # --mlock prevents the OS from swapping the model out of RAM
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1

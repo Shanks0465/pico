@@ -1,0 +1,73 @@
+# macOS / CPU-only build
+#
+# Docker on macOS (Docker Desktop, OrbStack) runs Linux containers inside a VM.
+# Metal and MPS are not accessible from within that VM, so GPU offload is unavailable.
+# This build uses OpenBLAS for CPU-accelerated matrix operations instead.
+#
+# On Apple Silicon the Linux ARM64 container runs natively (no emulation) and
+# OpenBLAS uses NEON SIMD, so throughput is reasonable for a coding assistant.
+#
+# If you need full Metal speed, run llama-server natively on macOS and point
+# LLAMA_CPP_BASE_URL at it — then only Pico needs to run in Docker (or not at all).
+
+# ── Stage 1: build llama-server (CPU + OpenBLAS) ─────────────────────────────
+FROM ubuntu:24.04 AS llama-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates git cmake ninja-build build-essential pkg-config \
+        libcurl4-openssl-dev libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /llama
+RUN git clone --depth 1 https://github.com/ggerganov/llama.cpp .
+
+RUN cmake -B build \
+        -DGGML_BLAS=ON \
+        -DGGML_BLAS_VENDOR=OpenBLAS \
+        -DLLAMA_CURL=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+    && cmake --build build --target llama-server -j$(nproc)
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+# Ubuntu 24.04 ships Python 3.12 by default — no deadsnakes PPA needed
+FROM ubuntu:24.04
+
+# libopenblas0 is the shared library llama-server links against at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl ca-certificates libopenblas0 libgomp1 \
+        python3.12 python3.12-venv python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy server binary and any shared libraries produced by the build (e.g. libllama-server-impl.so)
+COPY --from=llama-builder /llama/build/bin/ /tmp/llama-bin/
+RUN cp /tmp/llama-bin/llama-server /usr/local/bin/ && \
+    find /tmp/llama-bin -name '*.so*' -exec cp {} /usr/local/lib/ \; && \
+    rm -rf /tmp/llama-bin && \
+    ldconfig
+
+# ── Pico gateway ──────────────────────────────────────────────────────────────
+WORKDIR /app
+COPY requirements.txt .
+RUN python3.12 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
+
+COPY src/ ./src/
+
+# GPU_LAYERS=0 forces CPU-only inference; all other vars mirror src/config.py
+ENV LLAMA_CPP_BASE_URL=http://127.0.0.1:8080 \
+    LLAMA_MODEL_NAME=qwen2.5-coder-7b-instruct-q4_k_m \
+    LLAMA_CONTEXT_LENGTH=16384 \
+    LLAMA_PARALLEL_SLOTS=4 \
+    MODEL_PATH=/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf \
+    MODEL_URL="" \
+    GPU_LAYERS=0 \
+    PICO_PORT=8000
+
+VOLUME ["/models"]
+EXPOSE 8000
+
+# Reuses the same entrypoint — GPU_LAYERS=0 makes llama-server run on CPU
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]

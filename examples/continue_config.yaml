@@ -1,0 +1,42 @@
+name: Pico — Local LLM via llama.cpp
+version: 1.0.0
+schema: v1
+
+# This config wires Continue to a running Pico server (default: http://localhost:8000).
+# Start Pico first:
+#   uvicorn src.main:app --port 8000
+#
+# Then copy/merge this file into ~/.continue/config.yaml.
+
+models:
+  # --- Chat / Edit / Summarize ---
+  - name: Qwen2.5 Coder 7B (Pico)
+    provider: openai
+    model: qwen2.5-coder-7b-instruct-q4_k_m
+    apiBase: http://localhost:8000/v1
+    apiKey: dummy                         # Pico does not enforce auth
+    roles:
+      - chat
+      - edit
+      - summarize
+
+  # --- Autocomplete (FIM) ---
+  - name: Qwen2.5 Coder 7B Autocomplete (Pico)
+    provider: openai
+    model: qwen2.5-coder-7b-instruct-q4_k_m
+    apiBase: http://localhost:8000/v1
+    apiKey: dummy
+    roles:
+      - autocomplete
+
+# --- Optional: use a larger / different model loaded in llama-server ---
+# Uncomment and adjust `model` to match the value returned by GET /v1/models.
+#
+#  - name: Llama 3 8B (Pico)
+#    provider: openai
+#    model: llama-3-8b-instruct-q4_k_m
+#    apiBase: http://localhost:8000/v1
+#    apiKey: dummy
+#    roles:
+#      - chat
+#      - edit

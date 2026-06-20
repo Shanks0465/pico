@@ -1,0 +1,28 @@
+services:
+  pico:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your local models directory so the container reuses the file
+      # without re-downloading. Adjust the host path if needed.
+      - "${MODELS_DIR}:/models"
+    environment:
+      MODEL_PATH: /models/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+      # Set MODEL_URL only if you want the container to auto-download the model.
+      # Example (verify the exact filename on HuggingFace before use):
+      # MODEL_URL: https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf
+      GPU_LAYERS: "999"   # set to 0 for CPU-only inference
+    # Required for --mlock (locks model weights in RAM to avoid swap)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    # NVIDIA GPU passthrough — requires nvidia-container-toolkit on the host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
