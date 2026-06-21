@@ -34,11 +34,6 @@ fi
 
 # ── 2. Start llama-server in the background ───────────────────────────────────
 echo "Starting llama-server (GPU layers: ${GPU_LAYERS:-999}) ..."
-FLASH_ATTN_FLAG=""
-if [ "${GPU_LAYERS:-999}" != "0" ]; then
-    FLASH_ATTN_FLAG="--flash-attn"
-fi
-
 llama-server \
     -m "$MODEL_PATH" \
     --host 127.0.0.1 --port 8080 \
@@ -46,9 +41,6 @@ llama-server \
     -ngl "${GPU_LAYERS:-999}" \
     -np "${LLAMA_PARALLEL_SLOTS:-4}" \
     -cb \
-    ${FLASH_ATTN_FLAG} \
-    --cache-type-k q8_0 \
-    --cache-type-v q8_0 \
     --mlock &
 
 LLAMA_PID=$!
