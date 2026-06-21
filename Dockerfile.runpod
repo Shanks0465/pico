@@ -3,6 +3,7 @@
 # llama-server directly on the GPU pod instead of during CI.
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
+ARG DEBIAN_FRONTEND=noninteractive
 # Build tools stay in the image so the entrypoint can compile llama.cpp on the pod.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git cmake ninja-build build-essential libcurl4-openssl-dev \

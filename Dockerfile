@@ -1,6 +1,7 @@
 # ── Stage 1: build llama-server with CUDA ────────────────────────────────────
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS llama-builder
 
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git cmake ninja-build build-essential libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -19,6 +20,7 @@ RUN cmake -B build \
 # nvidia/cuda:runtime includes cuBLAS, which llama-server links against at runtime.
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
+ARG DEBIAN_FRONTEND=noninteractive
 # Python 3.12 — Ubuntu 22.04 ships 3.10, deadsnakes provides 3.12
 RUN apt-get update && apt-get install -y --no-install-recommends \
         software-properties-common curl ca-certificates \
