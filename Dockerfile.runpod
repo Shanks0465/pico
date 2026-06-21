@@ -1,0 +1,40 @@
+# ── RunPod image — llama.cpp is built on the pod at first start ───────────────
+# devel image provides the CUDA compiler and CMake so the entrypoint can build
+# llama-server directly on the GPU pod instead of during CI.
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+
+# Build tools stay in the image so the entrypoint can compile llama.cpp on the pod.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git cmake ninja-build build-essential libcurl4-openssl-dev \
+        software-properties-common curl ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        python3.12 python3.12-venv libcurl4 \
+    && python3.12 -m ensurepip --upgrade \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Pico gateway ──────────────────────────────────────────────────────────────
+WORKDIR /app
+COPY requirements.txt .
+RUN python3.12 -m pip install --no-cache-dir -r requirements.txt
+
+COPY src/ ./src/
+
+# Pico config — mirrors pydantic-settings field names in src/config.py
+ENV LLAMA_CPP_BASE_URL=http://127.0.0.1:8080 \
+    LLAMA_MODEL_NAME=qwen2.5-coder-7b-instruct-q4_k_m \
+    LLAMA_CONTEXT_LENGTH=16384 \
+    LLAMA_PARALLEL_SLOTS=4 \
+    MODEL_PATH=/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf \
+    MODEL_URL="" \
+    GPU_LAYERS=999 \
+    PICO_PORT=8000
+
+# Model files are expected on a mounted volume; see docker-compose.runpod.yml
+VOLUME ["/models"]
+EXPOSE 8000
+
+COPY docker-entrypoint.runpod.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
