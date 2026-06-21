@@ -1,0 +1,15 @@
+services:
+  pico:
+    image: ghcr.io/shanks0465/pico:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: /models/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+      MODEL_URL: https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf
+      GPU_LAYERS: "999"
+      PICO_PORT: "8000"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
