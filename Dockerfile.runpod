@@ -27,7 +27,7 @@ ENV LLAMA_CPP_BASE_URL=http://127.0.0.1:8080 \
     LLAMA_CONTEXT_LENGTH=16384 \
     LLAMA_PARALLEL_SLOTS=4 \
     MODEL_PATH=/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf \
-    MODEL_URL="" \
+    MODEL_URL=https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf \
     GPU_LAYERS=999 \
     PICO_PORT=8000
 

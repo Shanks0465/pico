@@ -10,11 +10,10 @@ if [ ! -f /usr/local/bin/llama-server ]; then
         -DGGML_CUDA=ON \
         -DLLAMA_CURL=ON \
         -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=OFF \
         -G Ninja
     cmake --build /tmp/llama.cpp/build --target llama-server -j"$(nproc)"
     cp /tmp/llama.cpp/build/bin/llama-server /usr/local/bin/llama-server
-    cp /tmp/llama.cpp/build/lib/*.so* /usr/local/lib/ 2>/dev/null || true
-    ldconfig
     rm -rf /tmp/llama.cpp
     echo "llama-server build complete."
 fi
